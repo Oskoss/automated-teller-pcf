@@ -1,0 +1,124 @@
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: ibm-voice-gateway
+  labels:
+    service: ibm-voice-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: ibm-voice-gateway
+  template:
+    metadata:
+      labels:
+        app: ibm
+        service: ibm-voice-gateway
+    spec:
+      volumes:
+      - persistentVolumeClaim:
+          claimName: recordings
+        name: recordings
+      hostNetwork: true
+      imagePullSecrets:
+      - name: admin.registrykey
+      containers:
+      - name: ibm-voice-gateway-media-relay
+        image: ibmcom/voice-gateway-mr:latest
+        ports:
+        - containerPort: 8080
+          hostPort: 8080
+          protocol: TCP
+        env:
+        - name: SDP_ADDRESS
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: ENABLE_RECORDING
+          value: 'false'
+        - name: RTP_UDP_PORT_RANGE
+          value: 16384-16394
+        - name: CLUSTER_WORKERS
+          value: '0'
+        - name: MEDIA_RELAY_LOG_LEVEL
+          value: DEBUG
+        - name: MEDIA_RELAY_WS_PORT
+          value: '8080'
+        - name: WATSON_STT_USERNAME
+          value: e85c1970-6367-4127-aaf3-a02253348a11
+        - name: WATSON_STT_PASSWORD
+          value: SeDWSEDIXejH
+        - name: WATSON_STT_URL
+          value: https://stream.watsonplatform.net/speech-to-text/api
+        - name: WATSON_TTS_USERNAME
+          value: b017d060-f863-4fb5-b560-8e184dca164b
+        - name: WATSON_TTS_PASSWORD
+          value: Q1UfYVTMbh3G
+        - name: WATSON_TTS_VOICE
+          value: en-US_AllisonVoice
+        - name: WATSON_TTS_URL
+          value: https://stream.watsonplatform.net/text-to-speech/api
+        resources: {}
+        volumeMounts:
+        - name: recordings
+          mountPath: "/vgw-media-relay/recordings"
+        terminationMessagePath: "/dev/termination-log"
+        imagePullPolicy: Always
+      - name: ibm-voice-gateway-sip-orchestrator
+        image: ibmcom/voice-gateway-so:latest
+        ports:
+        - containerPort: 5060
+          hostPort: 5060
+          protocol: TCP
+        - containerPort: 5060
+          hostPort: 5060
+          protocol: UDP
+        env:
+        - name: SIP_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MEDIA_RELAY_HOST
+          value: localhost:8080
+        - name: SIP_PORT
+          value: '5060'
+        - name: WATSON_STT_USERNAME
+          value: 532f18af-ad38-470e-b2c9-f9a894d0da53
+        - name: WATSON_STT_PASSWORD
+          value: Et0LFGrhZu3y
+        - name: WATSON_STT_URL
+          value: https://stream.watsonplatform.net/speech-to-text/api
+        - name: WATSON_CONVERSATION_WORKSPACE_ID
+          value: <INSERT YOUR WORKSPACE ID HERE>
+        - name: WATSON_CONVERSATION_USERNAME
+          value: <INSERT YOUR USERNAME HERE>
+        - name: WATSON_CONVERSATION_PASSWORD
+          value: <INSERT YOUR PASSWORD HERE>
+        - name: WATSON_CONVERSATION_URL
+          value: https://gateway.watsonplatform.net/assistant/api
+        - name: ENABLE_AUDIT_MESSAGES
+          value: 'true'
+        - name: ENABLE_TRANSCRIPTION_AUDIT_MESSAGES
+          value: 'true'
+        - name: REPORTING_URL
+          value: http://events.apps.pas.pcf.cloud.oskoss.com/watson
+        - name: REPORTING_USERNAME
+          value: vince
+        - name: REPORTING_PASSWORD
+          value: p1v0tal
+        - name: REPORTING_CDR_EVENT_INDEX
+          value: cdr
+        - name: REPORTING_CONVERSATION_EVENT_INDEX
+          value: conv
+        - name: REPORTING_TRANSCRIPTION_EVENT_INDEX
+          value: transcription
+        - name: LOG_LEVEL
+          value: all
+        resources: {}
+        terminationMessagePath: "/dev/termination-log"
+        imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}

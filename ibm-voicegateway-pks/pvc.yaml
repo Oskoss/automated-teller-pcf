@@ -1,0 +1,20 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: ibm-voice-gateway-recordings
+provisioner: kubernetes.io/vsphere-volume
+parameters:
+  diskformat: zeroedthick
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: recordings
+  annotations:
+    volume.beta.kubernetes.io/storage-class: ibm-voice-gateway-recordings
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
